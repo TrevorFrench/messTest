@@ -7,25 +7,41 @@
 # - Output results into dataframes
 # - Create array of public addresses
 # - Clean-up code
+# - Store assets in a sub-folder
+# - Get rid of unnecessary 'prints'
+# - Make functions able to accept a list of addresses
+# - Change append to concat
 
 #MODULES
 from web3 import Web3, HTTPProvider
 import json
+import pandas as pd
 
 #CONNECT TO NODE
 w3 = Web3(HTTPProvider('https://mainnet.infura.io/v3/9675ce340c39409d9cc2d5820ad10796'))
 
-#PRINT CURRENT BLOCK NUMBER
-print ("Latest Ethereum block number" , w3.eth.blockNumber)
+#LOAD FILES
+abiFile = open('minABI.json')
+minABI = json.load(abiFile)
 
-#GET CURRENT ETH BALANCE
-balance = w3.eth.get_balance('0x18aD506fFC6bD1977d94d48466680ADacf366cA4')
-print("Current Balance: ", balance / 1e18)
+addressFile = open('addresses.json')
+addresses = json.load(addressFile)
+
+#GET CURRENT ETH BALANCES
+def get_balances(addressList):
+  balanceList = []
+  for item in addressList:
+    balance = w3.eth.get_balance(item)
+    balanceList.append(balance / 1e18)
+  df = pd.DataFrame()
+  df['Address'] = addressList
+  df['Balance'] = balanceList
+  return df
+
+#df = get_balances(addresses)
+#print(df)
 
 #GET ENS TOKEN BALANCE
-f = open('minABI.json')
-data = json.load(f)
-minABI = data
 ensAddress = '0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72'
 token = w3.eth.contract(address=ensAddress, abi=minABI) # declaring the token contract
 token_balance = token.functions.balanceOf('0x18aD506fFC6bD1977d94d48466680ADacf366cA4').call() # returns int with balance, without decimals
