@@ -29,6 +29,8 @@ minABI = json.load(abiFile)
 addressFile = open('addresses.json')
 addresses = json.load(addressFile)
 
+ensAddress = '0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72'
+
 #GET CURRENT ETH BALANCES
 def get_balances(addressList):
   balanceList = []
@@ -41,10 +43,16 @@ def get_balances(addressList):
   return df
 
 #GET ENS TOKEN BALANCE
-ensAddress = '0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72'
-token = w3.eth.contract(address=ensAddress, abi=minABI) # declaring the token contract
-token_balance = token.functions.balanceOf('0x18aD506fFC6bD1977d94d48466680ADacf366cA4').call() # returns int with balance, without decimals
-print("ENS BALANCE: ", token_balance / 1e18)
+def get_token_balance(addressList, contractAddress, minABI):
+  balanceList = []
+  for item in addressList:
+    token = w3.eth.contract(address=ensAddress, abi=minABI)
+    token_balance =  token.functions.balanceOf(item).call()
+    balanceList.append(token_balance / 1e18)
+  df = pd.DataFrame()
+  df['Address'] = addressList
+  df['Balance'] = balanceList
+  return df
 
 #GET THE TRANSACTION HISTORY
 def fetch_all_transactions(beg, end, addressList):
@@ -57,15 +65,9 @@ def fetch_all_transactions(beg, end, addressList):
   gasPriceList = []
   txHashList = []
   inputList = []
-  maxFeeList = []
-  maxPriorityList = []
-  nonceList = []
-  rList = []
-  sList = []
-  indexList = []
   typeList = []
-  vList = []
   valueList = []
+  
   i = beg
   while i <= end:
     block = w3.eth.get_block(i)
@@ -89,36 +91,47 @@ def fetch_all_transactions(beg, end, addressList):
         gasPriceList.append(transaction['gasPrice'])
         txHashList.append(transaction['hash'].hex())
         inputList.append(transaction['input'])
-        maxFeeList.append(transaction['maxFeePerGas'])
-        maxPriorityList.append(transaction['maxPriorityFeePerGas'])
-        nonceList.append(transaction['nonce'])
-        rList.append(transaction['r'].hex())
-        sList.append(transaction['s'].hex())
-        indexList.append(transaction['transactionIndex'])
         typeList.append(transaction['type'])
-        vList.append(transaction['v'])
         valueList.append(transaction['value'])
       n += 1
     i += 1
+    
   df = pd.DataFrame()
   df['Block_Hash'] = blockHashList
   df['From'] = fromList
+  df['To'] = toList
+  df['Block_Number'] = blockNumList
+  df['Chain_ID'] = chainIdList
+  df['Gas'] = gasList
+  df['Gas_Price'] = gasPriceList
+  df['Tx_Hash'] = txHashList
+  df['Input'] = inputList
+  df['Type'] = typeList
+  df['Value'] = valueList
   return df
 
-df = fetch_all_transactions(14218907, 14218908, addresses)
-print(df)
+
 
 def test_transactions(block):
   block = w3.eth.get_block(block)
   txhash = block.transactions[0].hex()
   print("txhash: ", txhash)
-
   transaction = w3.eth.getTransaction(txhash)
   print(transaction)
-  print("Transaction From: ", transaction['from'])
-  print("Transaction To: ", transaction['to'])
 
-test_transactions(14218907)
+def test_specific_transactions(address):
+  transaction = w3.eth.getTransaction(address)
+  print(transaction['input'])
+  print(int(transaction['input'], 16))
 
+#test_specific_transactions('0x85207ece73fdfe35e26d213486ff77ae4f4024a67ac3ea9bff655026a42d71bb')
+
+#test_transactions(14218907)
 #df = get_balances(addresses)
+#print(df)
+
+#df = fetch_all_transactions(14218907, 14218908, addresses)
+#print(df)
+
+#df = get_token_balance(addresses, ensAddress, minABI)
 #print(df)
