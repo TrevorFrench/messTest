@@ -1,4 +1,15 @@
 # Messari On-Chain Data Challenge
+This program allows the user to do the following:
+- Retrieve current balance of a given list of public Ethereum addresses
+- Retrieve current ENS balance of a given list of public Ethereum addresses
+- Retrieve transaction history of a given list of public ethereum addresses
+
+## :page_facing_up: Instructions
+1. Navigate to Replit <https://replit.com/@TrevorFrench/messTest>
+2. Press "run" so the functions are accessible from the console
+3. Type "get_balances(addresses)" in the console to print a dataframe containing the public addresses along with the current ETH balance of each address listed in the "addresses.json file".
+4. klwde
+5. lmwefd
 
 ## :writing_hand: Author
 
