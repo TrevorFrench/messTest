@@ -31,7 +31,7 @@ with open('addresses.json') as addressFile:
   addresses = json.load(addressFile)
 
 ensAddress = '0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72'
-contractAddress = '0x283Af0B28c62C092C9727F1Ee09c02CA627EB7F5'
+
 test = '0x18aD506fFC6bD1977d94d48466680ADacf366cA4'
 
 #GET CURRENT ETH BALANCES
@@ -59,11 +59,10 @@ def get_token_balance(addressList, contractAddress, minABI):
 
 #CHECK ENS DOMAIN AVAILABILITY
 def check_available(domain):
+  contractAddress = '0x283Af0B28c62C092C9727F1Ee09c02CA627EB7F5'
   contract = w3.eth.contract(address=contractAddress, abi=contractABI)
   function = contract.functions.available(domain).call()
   return function
-
-contract = check_available('test')
 
 #GET THE TRANSACTION HISTORY
 def fetch_all_transactions(beg, end, addressList):
@@ -82,7 +81,7 @@ def fetch_all_transactions(beg, end, addressList):
   i = beg
   while i <= end:
     block = w3.eth.get_block(i)
-    print("Length: ", len(block.transactions))
+    print("Scanning Block: ", i)
     n = 0
     z = len(block.transactions)
     while n < z:
