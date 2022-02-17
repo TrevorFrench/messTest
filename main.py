@@ -4,14 +4,12 @@
 #   addresses
 # TODO:
 # - See if there is a way to scale up transaction fetching
-# - Output results into dataframes
-# - Create array of public addresses
 # - Clean-up code
 # - Store assets in a sub-folder
 # - Get rid of unnecessary 'prints'
 # - Make functions able to accept a list of addresses
 # - Catch errors if list items don't exist (need a value on every line to preserve order)
-# - look through differently structured transactions
+# - Parse swaps
 # - Might be able to merge each dictionary
 
 #MODULES
@@ -23,13 +21,18 @@ import pandas as pd
 w3 = Web3(HTTPProvider('https://mainnet.infura.io/v3/9675ce340c39409d9cc2d5820ad10796'))
 
 #LOAD FILES
-abiFile = open('minABI.json')
-minABI = json.load(abiFile)
+with open('minABI.json') as abiFile:
+  minABI = json.load(abiFile)
 
-addressFile = open('addresses.json')
-addresses = json.load(addressFile)
+with open('ensABI.json') as ensAbiFile:
+  contractABI = json.load(ensAbiFile)
+
+with open('addresses.json') as addressFile:
+  addresses = json.load(addressFile)
 
 ensAddress = '0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72'
+contractAddress = '0x283Af0B28c62C092C9727F1Ee09c02CA627EB7F5'
+test = '0x18aD506fFC6bD1977d94d48466680ADacf366cA4'
 
 #GET CURRENT ETH BALANCES
 def get_balances(addressList):
@@ -53,6 +56,14 @@ def get_token_balance(addressList, contractAddress, minABI):
   df['Address'] = addressList
   df['Balance'] = balanceList
   return df
+
+#CHECK ENS DOMAIN AVAILABILITY
+def check_available(domain):
+  contract = w3.eth.contract(address=contractAddress, abi=contractABI)
+  function = contract.functions.available(domain).call()
+  return function
+
+contract = check_available('test')
 
 #GET THE TRANSACTION HISTORY
 def fetch_all_transactions(beg, end, addressList):
@@ -108,10 +119,11 @@ def fetch_all_transactions(beg, end, addressList):
   df['Input'] = inputList
   df['Type'] = typeList
   df['Value'] = valueList
+  
   return df
 
 
-
+#DELETE ME
 def test_transactions(block):
   block = w3.eth.get_block(block)
   txhash = block.transactions[0].hex()
