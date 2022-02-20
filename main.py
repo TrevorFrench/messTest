@@ -1,16 +1,11 @@
 # TITLE: Messari On-Chain Data Challenge
 # DESCRIPTION: Uses web3.py to query ETH balance, ENS balance,
-#   as well as transaction history for a given array of public 
-#   addresses
+#   transaction history for a given array of public addresses,
+#   as well as the availability of any specified ENS domain
 # TODO:
-# - See if there is a way to scale up transaction fetching
-# - Clean-up code
-# - Store assets in a sub-folder
-# - Get rid of unnecessary 'prints'
-# - Make functions able to accept a list of addresses
-# - Catch errors if list items don't exist (need a value on every line to preserve order)
-# - Parse swaps
-# - Might be able to merge each dictionary
+# - Figure out how to parse swaps. Do you need to include ABI for each DeFi platform?
+# - 
+# -
 
 #MODULES
 from web3 import Web3, HTTPProvider
@@ -32,117 +27,132 @@ with open('addresses.json') as addressFile:
 
 ensAddress = '0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72'
 
-test = '0x18aD506fFC6bD1977d94d48466680ADacf366cA4'
-
 #GET CURRENT ETH BALANCES
 def get_balances(addressList):
-  balanceList = []
-  for item in addressList:
-    balance = w3.eth.get_balance(item)
-    balanceList.append(balance / 1e18)
-  df = pd.DataFrame()
-  df['Address'] = addressList
-  df['Balance'] = balanceList
-  return df
+
+  try:
+    balanceList = []
+  
+    #Queries eth balance for each address and adds the balance to a list
+    for item in addressList:
+      balance = w3.eth.get_balance(item)
+      balanceList.append(balance / 1e18)
+  
+    #Creates a dataframe with addresses and their respective balances
+    df = pd.DataFrame()
+    df['Address'] = addressList
+    df['Balance'] = balanceList
+    
+    return df
+    
+  except:
+    print('An error occurred retrieving ETH balances. Please check your inputs and try again.')
+    return
 
 #GET ENS TOKEN BALANCE
 def get_token_balance(addressList, contractAddress, minABI):
-  balanceList = []
-  for item in addressList:
-    token = w3.eth.contract(address=ensAddress, abi=minABI)
-    token_balance =  token.functions.balanceOf(item).call()
-    balanceList.append(token_balance / 1e18)
-  df = pd.DataFrame()
-  df['Address'] = addressList
-  df['Balance'] = balanceList
-  return df
+  
+  try:
+    balanceList = []
+    
+    #Queries ens balance for each address and adds the balance to a list
+    for item in addressList:
+      token = w3.eth.contract(address=ensAddress, abi=minABI)
+      token_balance =  token.functions.balanceOf(item).call()
+      balanceList.append(token_balance / 1e18)
+  
+    #Creates a dataframe with addresses and their respective balances
+    df = pd.DataFrame()
+    df['Address'] = addressList
+    df['Balance'] = balanceList
+    
+    return df
+    
+  except:
+    print('An error occurred retrieving ENS balances. Please check your inputs and try again.')
+    return
 
 #CHECK ENS DOMAIN AVAILABILITY
 def check_available(domain):
-  contractAddress = '0x283Af0B28c62C092C9727F1Ee09c02CA627EB7F5'
-  contract = w3.eth.contract(address=contractAddress, abi=contractABI)
-  function = contract.functions.available(domain).call()
-  return function
+  
+  try:
+    #Leverages the 'available' function on the ENS smart contract
+    contractAddress = '0x283Af0B28c62C092C9727F1Ee09c02CA627EB7F5'
+    contract = w3.eth.contract(address=contractAddress, abi=contractABI)
+    function = contract.functions.available(domain).call()
+    return function
+    
+  except:
+    print('An error occurred while verifying availability. Please check your inputs and try again.')
+    return
 
 #GET THE TRANSACTION HISTORY
 def fetch_all_transactions(beg, end, addressList):
-  blockHashList = []
-  fromList = []
-  toList = []
-  blockNumList = []
-  chainIdList = []
-  gasList = []
-  gasPriceList = []
-  txHashList = []
-  inputList = []
-  typeList = []
-  valueList = []
-  
-  i = beg
-  while i <= end:
-    block = w3.eth.get_block(i)
-    print("Scanning Block: ", i)
-    n = 0
-    z = len(block.transactions)
-    while n < z:
-      txhash = block.transactions[n].hex()
-      transaction = w3.eth.getTransaction(txhash)
-      txfrom = transaction['from']
-      txto = transaction['to']
+
+  try:
+
+    #Initialize lists
+    blockHashList = []
+    fromList = []
+    toList = []
+    blockNumList = []
+    chainIdList = []
+    gasList = []
+    gasPriceList = []
+    txHashList = []
+    inputList = []
+    typeList = []
+    valueList = []
+
+    #Outer Loop: Gets each block in the specified range
+    i = beg
+    while i <= end:
       
-      df = pd.DataFrame()
-      if txfrom in addressList or txto in addressList:
-        blockHashList.append(transaction['blockHash'].hex())
-        fromList.append(txfrom)
-        toList.append(txto)
-        blockNumList.append(transaction['blockNumber'])
-        chainIdList.append(transaction['chainId'])
-        gasList.append(transaction['gas'])
-        gasPriceList.append(transaction['gasPrice'])
-        txHashList.append(transaction['hash'].hex())
-        inputList.append(transaction['input'])
-        typeList.append(transaction['type'])
-        valueList.append(transaction['value'])
-      n += 1
-    i += 1
+      block = w3.eth.get_block(i)
+      print("Scanning Block: ", i)
+      n = 0
+      z = len(block.transactions)
+
+      #Inner Loop: Checks each transaction in the block
+      while n < z:
+        
+        txhash = block.transactions[n].hex()
+        transaction = w3.eth.getTransaction(txhash)
+        txfrom = transaction['from']
+        txto = transaction['to']
+
+        #If an address in the input array is associated with the transaction, log the transaction details
+        if txfrom in addressList or txto in addressList:
+            blockHashList.append(transaction['blockHash'].hex())
+            fromList.append(txfrom)
+            toList.append(txto)
+            blockNumList.append(transaction['blockNumber'])
+            chainIdList.append(transaction['chainId'])
+            gasList.append(transaction['gas'])
+            gasPriceList.append(transaction['gasPrice'])
+            txHashList.append(transaction['hash'].hex())
+            inputList.append(transaction['input'])
+            typeList.append(transaction['type'])
+            valueList.append(transaction['value'])          
+        n += 1
+      i += 1
+
+    #Create dataframe  
+    df = pd.DataFrame()
+    df['Block_Hash'] = blockHashList
+    df['From'] = fromList
+    df['To'] = toList
+    df['Block_Number'] = blockNumList
+    df['Chain_ID'] = chainIdList
+    df['Gas'] = gasList
+    df['Gas_Price'] = gasPriceList
+    df['Tx_Hash'] = txHashList
+    df['Input'] = inputList
+    df['Type'] = typeList
+    df['Value'] = valueList
     
-  df = pd.DataFrame()
-  df['Block_Hash'] = blockHashList
-  df['From'] = fromList
-  df['To'] = toList
-  df['Block_Number'] = blockNumList
-  df['Chain_ID'] = chainIdList
-  df['Gas'] = gasList
-  df['Gas_Price'] = gasPriceList
-  df['Tx_Hash'] = txHashList
-  df['Input'] = inputList
-  df['Type'] = typeList
-  df['Value'] = valueList
-  
-  return df
-
-
-#DELETE ME
-def test_transactions(block):
-  block = w3.eth.get_block(block)
-  txhash = block.transactions[0].hex()
-  print("txhash: ", txhash)
-  transaction = w3.eth.getTransaction(txhash)
-  print(transaction)
-
-def test_specific_transactions(address):
-  transaction = w3.eth.getTransaction(address)
-  print(transaction['input'])
-  print(int(transaction['input'], 16))
-
-#test_specific_transactions('0x85207ece73fdfe35e26d213486ff77ae4f4024a67ac3ea9bff655026a42d71bb')
-
-#test_transactions(14218907)
-#df = get_balances(addresses)
-#print(df)
-
-#df = fetch_all_transactions(14218907, 14218908, addresses)
-#print(df)
-
-#df = get_token_balance(addresses, ensAddress, minABI)
-#print(df)
+    return df
+    
+  except:
+    print('An error occurred retrieving transaction history. Please check your inputs and try again. If error persists, try narrowing your block search. @dev: persistent errors may require parsing values dynamically.')
+    return

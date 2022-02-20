@@ -29,8 +29,7 @@ with open('addresses.json') as addressFile:
   addresses = json.load(addressFile)
 
 #GET DATAFRAME OF WALLETS WITH CURRENT ETH BALANCES
-df = get_balances(addresses)
-print(df)
+get_balances(addresses)
 ```
 
 ### get_token_balance(addressList, contractAddress, minABI)
